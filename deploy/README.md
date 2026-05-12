@@ -9,6 +9,39 @@
 [VM4] 부하 서버    JMeter               -
 ```
 
+---
+
+## VM 사양 (VMware Workstation on Windows)
+
+**호스트 PC**: AMD Ryzen 9 6900HX (8코어 16스레드) / RAM 32GB
+
+| VM | 역할 | vCPU | RAM | 디스크 | 비고 |
+|---|---|---|---|---|---|
+| VM1 | 앱 서버 (Nginx+React) | 1코어 | 1GB | 20GB | 정적 파일 서빙 → 경량 |
+| VM2 | API 서버 (FastAPI) | 2코어 | 4GB | 20GB | CPU 급등 유발 대상 → 코어 적게 |
+| VM3 | DB 서버 (PostgreSQL) | 2코어 | 4GB | 30GB | DB 버퍼 캐시 위해 RAM 확보 |
+| VM4 | 부하 서버 (JMeter) | 2코어 | 6GB | 20GB | 1000스레드 JVM 힙 대응 |
+| **합계** | | **7코어** | **15GB** | **90GB** | |
+
+**자원 배분 요약**
+
+```
+호스트 전체:       16스레드 / 32GB RAM
+VM 합계 사용:       7vCPU  / 15GB RAM
+Windows 예약:       ~3코어  /  6GB RAM
+여유:               ~6코어  / 11GB RAM  ← 넉넉한 여유
+```
+
+**VM2를 2코어만 주는 이유**
+JMeter 부하 시 CPU가 빠르게 80%에 도달해야 AWS 자동 확장 트리거가 작동함.
+코어가 많으면 부하를 잘 버텨서 CPU가 안 올라감.
+
+**VM4 RAM을 6GB 주는 이유**
+JMeter 1000스레드 실행 시 JVM이 3~4GB 소비.
+최소 6GB 확보해야 OOM 없이 안정적으로 부하 가능.
+
+---
+
 ## 배포 전 준비사항
 
 ### 1. Docker Hub 이미지 푸시 (Windows에서)
