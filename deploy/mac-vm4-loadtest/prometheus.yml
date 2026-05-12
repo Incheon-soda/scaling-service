@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'vm1-app'
+    static_configs:
+      - targets: ['192.168.64.2:9100']
+        labels:
+          server: 'app'
+
+  - job_name: 'vm2-api'
+    static_configs:
+      - targets: ['192.168.64.3:9100']
+        labels:
+          server: 'api'
+
+  - job_name: 'vm3-db-system'
+    static_configs:
+      - targets: ['192.168.64.4:9100']
+        labels:
+          server: 'db'
+
+  - job_name: 'vm3-db-postgres'
+    static_configs:
+      - targets: ['192.168.64.4:9187']
+        labels:
+          server: 'db'

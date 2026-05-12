@@ -13,7 +13,7 @@ docker login
 echo "=== 백엔드 이미지 빌드 (linux/arm64) ==="
 docker buildx build \
   --platform linux/arm64 \
-  -t $REGISTRY/stays-backend:arm64 \
+  -t $REGISTRY/mac-stays-backend:latest \
   --push \
   ./backend
 
@@ -22,10 +22,10 @@ docker buildx build \
   --platform linux/arm64 \
   --build-arg VITE_API_URL=$API_URL \
   --build-arg VITE_KAKAO_MAP_KEY=$KAKAO_KEY \
-  -t $REGISTRY/stays-frontend:arm64 \
+  -t $REGISTRY/mac-stays-frontend:latest \
   --push \
   -f Dockerfile.frontend .
 
 echo "=== 완료 ==="
-echo "백엔드: docker.io/$REGISTRY/stays-backend:arm64"
-echo "프론트: docker.io/$REGISTRY/stays-frontend:arm64"
+echo "백엔드: docker.io/$REGISTRY/mac-stays-backend:latest"
+echo "프론트: docker.io/$REGISTRY/mac-stays-frontend:latest"

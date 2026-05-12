@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: soldesk1184/stays-frontend:arm64
+    image: soldesk1184/mac-stays-frontend:latest
     container_name: stays-frontend
     ports:
       - "80:80"
