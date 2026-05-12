@@ -6,28 +6,28 @@ scrape_configs:
   # VM1 앱 서버
   - job_name: 'vm1-app'
     static_configs:
-      - targets: ['VM1_IP:9100']
+      - targets: ['10.0.2.139:9100']
         labels:
           server: 'app'
 
   # VM2 API 서버 (부하 타겟 - CPU 모니터링 핵심)
   - job_name: 'vm2-api'
     static_configs:
-      - targets: ['VM2_IP:9100']
+      - targets: ['10.0.2.138:9100']
         labels:
           server: 'api'
 
   # VM3 DB 서버 - 시스템 메트릭
   - job_name: 'vm3-db-system'
     static_configs:
-      - targets: ['VM3_IP:9100']
+      - targets: ['10.0.2.137:9100']
         labels:
           server: 'db'
 
   # VM3 DB 서버 - PostgreSQL 메트릭
   - job_name: 'vm3-db-postgres'
     static_configs:
-      - targets: ['VM3_IP:9187']
+      - targets: ['10.0.2.137:9187']
         labels:
           server: 'db'
 

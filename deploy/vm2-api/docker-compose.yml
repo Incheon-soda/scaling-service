@@ -2,12 +2,12 @@ version: "3.8"
 
 services:
   backend:
-    image: dk12dl/stays-backend:latest
+    image: soldesk1184/stays-backend:latest
     container_name: stays-backend
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://postgres:stays_password@VM3_IP:5432/stays_db
+      DATABASE_URL: postgresql://postgres:stays_password@10.0.2.137:5432/stays_db
       JWT_SECRET_KEY: stays-jwt-secret-key
-      FRONTEND_URL: http://VM1_IP
+      FRONTEND_URL: http://10.0.2.139
     restart: unless-stopped
