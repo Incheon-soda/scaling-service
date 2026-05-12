@@ -1,0 +1,7 @@
+services:
+  frontend:
+    image: soldesk1184/stays-frontend:arm64
+    container_name: stays-frontend
+    ports:
+      - "80:80"
+    restart: unless-stopped

@@ -4,7 +4,7 @@
 set -e
 
 REGISTRY="soldesk1184"
-API_URL="${VITE_API_URL:-http://10.0.2.139:8000}"
+API_URL="${VITE_API_URL:-http://10.0.2.138:8000}"
 KAKAO_KEY="${VITE_KAKAO_MAP_KEY:-7f8b9c6ef339ead8af4c274471dd0382}"
 
 echo "=== Docker Hub 로그인 ==="
