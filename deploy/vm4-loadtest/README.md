@@ -85,7 +85,56 @@ ls ~/loadtest/results/
 scp -r user@VM4_IP:~/loadtest/results/ .
 ```
 
+## 모니터링 (Prometheus + Grafana)
+
+### 실행
+```bash
+# prometheus.yml IP 교체
+sed -i 's/VM1_IP/실제앱IP/g'  ~/deploy/vm4-loadtest/prometheus.yml
+sed -i 's/VM2_IP/실제APIIP/g' ~/deploy/vm4-loadtest/prometheus.yml
+sed -i 's/VM3_IP/실제DBIP/g'  ~/deploy/vm4-loadtest/prometheus.yml
+
+# 실행
+cd ~/deploy/vm4-loadtest
+docker compose -f docker-compose.monitoring.yml up -d
+```
+
+### Grafana 접속
+```
+URL:  http://VM4_IP:3000
+ID:   admin
+PW:   admin1234
+```
+
+### Data Source 추가
+```
+Connections → Data sources → Add → Prometheus
+URL: http://prometheus:9090
+→ Save & test
+```
+
+### 대시보드 Import
+
+**Dashboards → New → Import → ID 입력 → Load → Prometheus 선택 → Import**
+
+| 서버 | Exporter | Dashboard ID | Job 선택 |
+|---|---|---|---|
+| VM1 앱 서버 | Node Exporter | **1860** | vm1-app |
+| VM2 API 서버 ★ | Node Exporter | **1860** | vm2-api |
+| VM3 DB 시스템 | Node Exporter | **1860** | vm3-db-system |
+| VM3 DB PostgreSQL | postgres_exporter | **9628** | vm3-db-postgres |
+| VM4 부하 서버 | Node Exporter | **1860** | vm4-loadtest |
+
+> ★ VM2가 핵심 — 부하테스트 시 CPU 80% 급등 여기서 확인
+
+### 9628 주요 지표 (부하테스트 시 확인)
+- **Active Connections** — 동시 접속 수
+- **Locks** — DB 락 대기 ← FOR UPDATE 경합 시 급등
+- **Transactions/sec** — 초당 트랜잭션 수
+
 ## 포트
 | 포트 | 용도 |
 |---|---|
 | 22 | SSH |
+| 9090 | Prometheus |
+| 3000 | Grafana |
