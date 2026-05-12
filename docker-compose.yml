@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  # ── PostgreSQL DB ──
+  db:
+    image: postgres:16
+    container_name: stays-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: stays_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: stays_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d stays_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI 백엔드 ──
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: stays-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:stays_password@db:5432/stays_db
+      JWT_SECRET_KEY: local-dev-secret
+      FRONTEND_URL: http://localhost
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── React 프론트엔드 (Nginx) ──
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+        VITE_KAKAO_MAP_KEY: 7f8b9c6ef339ead8af4c274471dd0382
+    container_name: stays-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:

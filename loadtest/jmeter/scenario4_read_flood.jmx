@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="시나리오4 - 인기 숙소 집중 조회" enabled="true">
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="BASE_URL" elementType="Argument">
+            <stringProp name="Argument.name">BASE_URL</stringProp>
+            <stringProp name="Argument.value">http://localhost</stringProp>
+          </elementProp>
+          <elementProp name="API_PORT" elementType="Argument">
+            <stringProp name="Argument.name">API_PORT</stringProp>
+            <stringProp name="Argument.value">8000</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+
+      <!-- setUp: stay_id 수집 -->
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="setUp - ID 수집" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="GET /stays" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays?sort=rating&limit=1</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPathExtractor testclass="JSONPathExtractor" testname="stay_id" enabled="true">
+            <stringProp name="JSONPathExtractor.referenceName">HOT_STAY_ID</stringProp>
+            <stringProp name="JSONPathExtractor.jsonPathExpression">$[0].id</stringProp>
+            <stringProp name="JSONPathExtractor.defaultValue">NOT_FOUND</stringProp>
+          </JSONPathExtractor>
+          <JSR223PostProcessor testclass="JSR223PostProcessor" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">props.put("S4_STAY_ID", vars.get("HOT_STAY_ID"))</stringProp>
+          </JSR223PostProcessor>
+        </hashTree>
+      </hashTree>
+
+      <!-- 메인: 2000명 / 60초 ramp-up / 3회 반복 -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="2000명 조회 폭주" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">2000</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">60</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">3</stringProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+
+        <!-- ① 숙소 목록 -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="① GET /stays" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+
+        <!-- ② 인기 숙소 상세 (집중 조회) -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="② GET /stays/:id (집중 조회)" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays/${__P(S4_STAY_ID)}</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ConstantTimer testclass="ConstantTimer" testname="Think 500ms" enabled="true">
+            <stringProp name="ConstantTimer.delay">500</stringProp>
+          </ConstantTimer>
+          <hashTree/>
+        </hashTree>
+
+        <!-- ③ 객실 정보 조회 -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="③ GET /stays/:id/rooms" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays/${__P(S4_STAY_ID)}/rooms</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+
+        <ResultCollector testclass="ResultCollector" testname="Summary Report" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time><latency>true</latency><timestamp>true</timestamp>
+              <success>true</success><label>true</label><code>true</code>
+              <message>true</message><bytes>true</bytes><threadCounts>true</threadCounts>
+            </value>
+          </objProp>
+          <stringProp name="filename">../results/scenario4_result.jtl</stringProp>
+        </ResultCollector>
+        <hashTree/>
+
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

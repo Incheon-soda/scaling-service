@@ -1,0 +1,40 @@
+# 의존성
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# 환경변수 (민감 정보)
+.env
+backend/.env
+*.env.local
+
+# 빌드 결과물
+dist/
+build/
+.vite/
+
+# 테스트 결과
+loadtest/results/*.jtl
+loadtest/results/scenario*_report/
+deploy/vm4-loadtest/loadtest/results/*.jtl
+
+# DB 덤프 (용량 큼)
+dump.sql
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# 로그
+*.log
+
+# 이미지 (직접 관리)
+images/*.jpg
+images/*.jpeg
+images/*.png
+images/*.webp

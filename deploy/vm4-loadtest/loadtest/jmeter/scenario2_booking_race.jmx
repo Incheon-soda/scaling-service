@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="시나리오2 - 특가 숙소 예약 경쟁" enabled="true">
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="BASE_URL" elementType="Argument">
+            <stringProp name="Argument.name">BASE_URL</stringProp>
+            <stringProp name="Argument.value">http://localhost</stringProp>
+          </elementProp>
+          <elementProp name="API_PORT" elementType="Argument">
+            <stringProp name="Argument.name">API_PORT</stringProp>
+            <stringProp name="Argument.value">8000</stringProp>
+          </elementProp>
+          <elementProp name="COUPON_CODE" elementType="Argument">
+            <stringProp name="Argument.name">COUPON_CODE</stringProp>
+            <stringProp name="Argument.value">SOLD-2026</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+
+      <!-- setUp: stay_id, room_id, event_id 수집 -->
+      <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="setUp - ID 수집" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">1</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">1</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+      </SetupThreadGroup>
+      <hashTree>
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="GET /stays" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays?limit=1</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPathExtractor testclass="JSONPathExtractor" testname="stay_id 추출" enabled="true">
+            <stringProp name="JSONPathExtractor.referenceName">EXTRACTED_STAY_ID</stringProp>
+            <stringProp name="JSONPathExtractor.jsonPathExpression">$[0].id</stringProp>
+            <stringProp name="JSONPathExtractor.defaultValue">NOT_FOUND</stringProp>
+          </JSONPathExtractor>
+          <JSR223PostProcessor testclass="JSR223PostProcessor" testname="stay_id props 저장" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">props.put("S2_STAY_ID", vars.get("EXTRACTED_STAY_ID"))</stringProp>
+          </JSR223PostProcessor>
+        </hashTree>
+
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="GET /stays/:id/rooms" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays/${EXTRACTED_STAY_ID}/rooms</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPathExtractor testclass="JSONPathExtractor" testname="room_id 추출" enabled="true">
+            <stringProp name="JSONPathExtractor.referenceName">EXTRACTED_ROOM_ID</stringProp>
+            <stringProp name="JSONPathExtractor.jsonPathExpression">$[0].id</stringProp>
+            <stringProp name="JSONPathExtractor.defaultValue">NOT_FOUND</stringProp>
+          </JSONPathExtractor>
+          <JSR223PostProcessor testclass="JSR223PostProcessor" testname="room_id props 저장" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">props.put("S2_ROOM_ID", vars.get("EXTRACTED_ROOM_ID"))</stringProp>
+          </JSR223PostProcessor>
+        </hashTree>
+
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="GET /events" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/events</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPathExtractor testclass="JSONPathExtractor" testname="event_id 추출" enabled="true">
+            <stringProp name="JSONPathExtractor.referenceName">EXTRACTED_EVENT_ID</stringProp>
+            <stringProp name="JSONPathExtractor.jsonPathExpression">$[0].id</stringProp>
+            <stringProp name="JSONPathExtractor.defaultValue">NOT_FOUND</stringProp>
+          </JSONPathExtractor>
+          <JSR223PostProcessor testclass="JSR223PostProcessor" testname="event_id props 저장" enabled="true">
+            <stringProp name="scriptLanguage">groovy</stringProp>
+            <stringProp name="script">props.put("S2_EVENT_ID", vars.get("EXTRACTED_EVENT_ID"))</stringProp>
+          </JSR223PostProcessor>
+        </hashTree>
+      </hashTree>
+
+      <!-- 메인: 500명 / 5초 ramp-up / 1회 -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="500명 예약 경쟁" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">500</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">5</stringProp>
+        <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
+        <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
+          <boolProp name="LoopController.continue_forever">false</boolProp>
+          <stringProp name="LoopController.loops">1</stringProp>
+        </elementProp>
+      </ThreadGroup>
+      <hashTree>
+
+        <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="유저 CSV" enabled="true">
+          <stringProp name="filename">../scripts/users.csv</stringProp>
+          <stringProp name="variableNames">EMAIL,PASSWORD</stringProp>
+          <stringProp name="delimiter">,</stringProp>
+          <boolProp name="ignoreFirstLine">true</boolProp>
+          <stringProp name="shareMode">shareMode.all</stringProp>
+          <boolProp name="recycle">true</boolProp>
+        </CSVDataSet>
+        <hashTree/>
+
+        <HeaderManager testclass="HeaderManager" testname="Content-Type" enabled="true">
+          <collectionProp name="HeaderManager.headers">
+            <elementProp name="" elementType="Header">
+              <stringProp name="Header.name">Content-Type</stringProp>
+              <stringProp name="Header.value">application/json</stringProp>
+            </elementProp>
+          </collectionProp>
+        </HeaderManager>
+        <hashTree/>
+
+        <!-- ① 로그인 -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="① POST /auth/login" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/auth/login</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <stringProp name="Argument.value">{"email":"${EMAIL}","password":"${PASSWORD}"}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <JSONPathExtractor testclass="JSONPathExtractor" testname="토큰 추출" enabled="true">
+            <stringProp name="JSONPathExtractor.referenceName">TOKEN</stringProp>
+            <stringProp name="JSONPathExtractor.jsonPathExpression">$.access_token</stringProp>
+            <stringProp name="JSONPathExtractor.defaultValue">NO_TOKEN</stringProp>
+          </JSONPathExtractor>
+        </hashTree>
+
+        <!-- ② 숙소 상세 -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="② GET /stays/:id" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays/${__P(S2_STAY_ID)}</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <ConstantTimer testclass="ConstantTimer" testname="Think 1s" enabled="true">
+            <stringProp name="ConstantTimer.delay">1000</stringProp>
+          </ConstantTimer>
+          <hashTree/>
+        </hashTree>
+
+        <!-- ③ 객실 확인 -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="③ GET /stays/:id/rooms" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/stays/${__P(S2_STAY_ID)}/rooms</stringProp>
+          <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree/>
+
+        <!-- ④ 쿠폰 검증 -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="④ POST /coupons/validate" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/coupons/validate</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <stringProp name="Argument.value">{"coupon_code":"${COUPON_CODE}","stay_id":"${__P(S2_STAY_ID)}"}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager testclass="HeaderManager" testname="Auth" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Authorization</stringProp>
+                <stringProp name="Header.value">Bearer ${TOKEN}</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+        </hashTree>
+
+        <!-- ⑤ 예약 생성 ★ -->
+        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="⑤ POST /bookings ★CPU급등★" enabled="true">
+          <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
+          <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
+          <stringProp name="HTTPSampler.path">/bookings</stringProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+          <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="" elementType="HTTPArgument">
+                <stringProp name="Argument.value">{"stay_id":"${__P(S2_STAY_ID)}","room_id":"${__P(S2_ROOM_ID)}","check_in":"2026-07-01","check_out":"2026-07-03","guests":2,"event_id":"${__P(S2_EVENT_ID)}"}</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </elementProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+        </HTTPSamplerProxy>
+        <hashTree>
+          <HeaderManager testclass="HeaderManager" testname="Auth" enabled="true">
+            <collectionProp name="HeaderManager.headers">
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Authorization</stringProp>
+                <stringProp name="Header.value">Bearer ${TOKEN}</stringProp>
+              </elementProp>
+            </collectionProp>
+          </HeaderManager>
+          <hashTree/>
+        </hashTree>
+
+        <ResultCollector testclass="ResultCollector" testname="Summary Report" enabled="true">
+          <boolProp name="ResultCollector.error_logging">false</boolProp>
+          <objProp>
+            <name>saveConfig</name>
+            <value class="SampleSaveConfiguration">
+              <time>true</time><latency>true</latency><timestamp>true</timestamp>
+              <success>true</success><label>true</label><code>true</code>
+              <message>true</message><bytes>true</bytes><threadCounts>true</threadCounts>
+            </value>
+          </objProp>
+          <stringProp name="filename">../results/scenario2_result.jtl</stringProp>
+        </ResultCollector>
+        <hashTree/>
+
+      </hashTree>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>
