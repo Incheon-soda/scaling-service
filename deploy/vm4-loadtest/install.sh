@@ -58,18 +58,54 @@ sudo ufw allow 22
 sudo ufw --force enable
 
 # 7. 설치 확인
+# Node Exporter 설치 (자기 자신도 모니터링)
+echo "--- Node Exporter 설치 ---"
+wget -q https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz -O /tmp/node_exporter.tar.gz
+tar -xzf /tmp/node_exporter.tar.gz -C /tmp/
+sudo mv /tmp/node_exporter-1.7.0.linux-amd64/node_exporter /usr/local/bin/
+
+sudo tee /etc/systemd/system/node_exporter.service > /dev/null << 'SVCEOF'
+[Unit]
+Description=Prometheus Node Exporter
+After=network.target
+[Service]
+ExecStart=/usr/local/bin/node_exporter
+Restart=always
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now node_exporter
+
+# Docker 설치 (Prometheus + Grafana용)
+echo "--- Docker 설치 ---"
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
 echo ""
 echo "=== VM4 설치 완료 ==="
 jmeter --version 2>&1 | head -2
 python3 --version
 echo ""
 echo "다음 단계:"
-echo "  1. Windows에서 loadtest 폴더 복사:"
-echo "     scp -r loadtest/ $(whoami)@$(hostname -I | awk '{print $1}'):~/"
+echo "  1. prometheus.yml에서 실제 IP로 교체:"
+echo "     sed -i 's/VM1_IP/실제앱IP/g'     ~/deploy/vm4-loadtest/prometheus.yml"
+echo "     sed -i 's/VM2_IP/실제APIIP/g'    ~/deploy/vm4-loadtest/prometheus.yml"
+echo "     sed -i 's/VM3_IP/실제DBIP/g'     ~/deploy/vm4-loadtest/prometheus.yml"
 echo ""
-echo "  2. 테스트 유저 생성:"
+echo "  2. Prometheus + Grafana 실행:"
+echo "     cd ~/deploy/vm4-loadtest"
+echo "     docker compose -f docker-compose.monitoring.yml up -d"
+echo ""
+echo "  3. Grafana 접속: http://$(hostname -I | awk '{print $1}'):3000"
+echo "     ID: admin  /  PW: admin1234"
+echo "     Connections → Data sources → Add → Prometheus"
+echo "     URL: http://prometheus:9090  →  Save & test"
+echo ""
+echo "  4. 테스트 유저 생성:"
 echo "     python3 ~/loadtest/scripts/create_users.py --url http://VM2_IP:8000 --count 2000"
 echo ""
-echo "  3. 부하 테스트 실행:"
+echo "  5. 부하 테스트 실행:"
 echo "     chmod +x ~/deploy/vm4-loadtest/run.sh"
 echo "     ~/deploy/vm4-loadtest/run.sh all VM2_IP"

@@ -42,6 +42,28 @@ sudo ufw --force enable
 echo "--- 서비스 시작 ---"
 docker compose up -d
 
+# Node Exporter 설치 (Prometheus 모니터링용)
+echo "--- Node Exporter 설치 ---"
+wget -q https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz -O /tmp/node_exporter.tar.gz
+tar -xzf /tmp/node_exporter.tar.gz -C /tmp/
+sudo mv /tmp/node_exporter-1.7.0.linux-amd64/node_exporter /usr/local/bin/
+
+sudo tee /etc/systemd/system/node_exporter.service > /dev/null << 'SVCEOF'
+[Unit]
+Description=Prometheus Node Exporter
+After=network.target
+[Service]
+ExecStart=/usr/local/bin/node_exporter
+Restart=always
+[Install]
+WantedBy=multi-user.target
+SVCEOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now node_exporter
+sudo ufw allow 9100
+
 echo "=== VM1 설치 완료 ==="
 echo "프론트엔드: http://$(hostname -I | awk '{print $1}')"
+echo "Node Exporter: http://$(hostname -I | awk '{print $1}'):9100/metrics"
 EOF
