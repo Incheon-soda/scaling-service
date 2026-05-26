@@ -22,11 +22,13 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEvents from "./pages/admin/AdminEvents";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminStays from "./pages/admin/AdminStays";
+import { AuthProvider } from "./hooks/use-auth";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <AuthProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -56,6 +58,7 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 

@@ -1344,9 +1344,19 @@ fb10dd05-23ea-4037-a30e-5fc9fc6f0870	dd01ddae-11b8-44ec-8ddd-841e0d81ee1d	스튜
 \.
 
 COPY public.stay_images (id, stay_id, url, is_main) FROM stdin;
-a1000001-0000-0000-0000-000000000001	86eb76c6-edb7-49b1-8c55-ac6236b66957	http://localhost/images/soldesc_gangnam_pavilion.jpg	t
-a1000001-0000-0000-0000-000000000002	d83e5082-a03d-4e1c-918a-37d17b0d8995	http://localhost/images/soldesc_gangnam_seongok.jpg	t
-a1000001-0000-0000-0000-000000000003	dd01ddae-11b8-44ec-8ddd-841e0d81ee1d	http://localhost/images/soldesc_jongno.jpg	t
+a1000001-0000-0000-0000-000000000001	86eb76c6-edb7-49b1-8c55-ac6236b66957	http://192.168.111.138/images/soldesk_gangnam_pavilion_1.jpg	t
+a1000001-0000-0000-0000-000000000011	86eb76c6-edb7-49b1-8c55-ac6236b66957	http://192.168.111.138/images/soldesk_gangnam_pavilion_2.jpg	f
+a1000001-0000-0000-0000-000000000012	86eb76c6-edb7-49b1-8c55-ac6236b66957	http://192.168.111.138/images/soldesk_gangnam_pavilion_3.jpg	f
+a1000001-0000-0000-0000-000000000013	86eb76c6-edb7-49b1-8c55-ac6236b66957	http://192.168.111.138/images/soldesk_gangnam_pavilion_4.jpg	f
+a1000001-0000-0000-0000-000000000014	86eb76c6-edb7-49b1-8c55-ac6236b66957	http://192.168.111.138/images/soldesk_gangnam_pavilion_5.jpg	f
+a1000001-0000-0000-0000-000000000002	d83e5082-a03d-4e1c-918a-37d17b0d8995	http://192.168.111.138/images/soldesk_gangnam_seongok_1.jpg	t
+a1000001-0000-0000-0000-000000000021	d83e5082-a03d-4e1c-918a-37d17b0d8995	http://192.168.111.138/images/soldesk_gangnam_seongok_2.jpg	f
+a1000001-0000-0000-0000-000000000022	d83e5082-a03d-4e1c-918a-37d17b0d8995	http://192.168.111.138/images/soldesk_gangnam_seongok_3.jpg	f
+a1000001-0000-0000-0000-000000000023	d83e5082-a03d-4e1c-918a-37d17b0d8995	http://192.168.111.138/images/soldesk_gangnam_seongok_4.jpg	f
+a1000001-0000-0000-0000-000000000003	dd01ddae-11b8-44ec-8ddd-841e0d81ee1d	http://192.168.111.138/images/soldesk_jongro_1.jpg	t
+a1000001-0000-0000-0000-000000000031	dd01ddae-11b8-44ec-8ddd-841e0d81ee1d	http://192.168.111.138/images/soldesk_jongro_2.jpg	f
+a1000001-0000-0000-0000-000000000032	dd01ddae-11b8-44ec-8ddd-841e0d81ee1d	http://192.168.111.138/images/soldesk_jongro_3.jpg	f
+a1000001-0000-0000-0000-000000000033	dd01ddae-11b8-44ec-8ddd-841e0d81ee1d	http://192.168.111.138/images/soldesk_jongro_4.jpg	f
 \.
 
 COPY public.events (id, title, description, discount_rate, start_date, end_date, status, type, region, total_rooms, remaining_rooms, banner_color) FROM stdin;

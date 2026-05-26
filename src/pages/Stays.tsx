@@ -33,7 +33,7 @@ const Stays = () => {
 
   useEffect(() => {
     setLoading(true);
-    getStays({ category, region, search, sort: SORT_MAP[sort], limit: 50 })
+    getStays({ category, region, search, sort: SORT_MAP[sort], limit: 100 })
       .then(setStays)
       .catch(() => {})
       .finally(() => setLoading(false));

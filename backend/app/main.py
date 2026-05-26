@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.database import init_pool, close_pool
+from app.database import init_pool, close_pool, seed_pool_coupon
 from app.routers import auth_router, stays_router, events_router, coupons_router, bookings_router
 
 
@@ -15,6 +15,7 @@ from app.routers import auth_router, stays_router, events_router, coupons_router
 async def lifespan(app: FastAPI):
     """앱 시작/종료 시 DB 커넥션 풀 관리"""
     await init_pool()
+    await seed_pool_coupon()
     yield
     await close_pool()
 
@@ -26,12 +27,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS 설정 — 프론트엔드(Vite)에서의 요청 허용
+# CORS 설정 — 데모 환경: 전체 허용
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -94,7 +94,7 @@ const EventDetail = () => {
     try {
       await issueCoupon({
         event_id: eventData.id,
-        coupon_code: "SOLD-2026",
+        coupon_code: "SOLD-LOAD",
       });
       setCouponState("success");
       sonner.success("쿠폰이 발급되었습니다!");
@@ -193,7 +193,7 @@ const EventDetail = () => {
         <div className="space-y-1">
           <div className="font-serif-display text-2xl">30% 할인 쿠폰</div>
           <div className="text-xs text-muted-foreground">
-            코드 <span className="font-mono">SOLD-2026</span> · 2026.05.31까지
+            코드 <span className="font-mono">SOLD-LOAD</span> · 2026.05.31까지
           </div>
         </div>
         <div className="flex flex-col items-start gap-2 md:items-end">
@@ -212,7 +212,7 @@ const EventDetail = () => {
           </button>
           {couponState === "success" && (
             <span className="text-xs" style={{ color: "hsl(150 60% 35%)" }}>
-              SOLD-2026 발급 완료 ✓
+              SOLD-LOAD 발급 완료 ✓
             </span>
           )}
           {couponState === "already" && (
@@ -317,7 +317,7 @@ const EventDetail = () => {
               </div>
 
               <button
-                onClick={() => navigate(`/stays/${s.stay_id}`)}
+                onClick={() => navigate(`/stays/${s.stay_id}?event_id=${id}&coupon=SOLD-LOAD`)}
                 className="w-full bg-foreground py-2.5 text-sm text-background transition-opacity hover:opacity-90"
                 style={{ borderRadius: "4px" }}
               >
@@ -343,25 +343,25 @@ const EventDetail = () => {
               id: "jongno",
               lat: 37.5704,
               lng: 126.9831,
-              label: "종로점",
-              info: "솔데스크 종로점 · 종로구 종로12길 15",
-              onClick: () => navigate("/stays?region=서울"),
+              label: "솔데스크 종로점",
+              info: "솔데스크 종로점 · 종로구 종로12길 15<br/><b>클릭하여 상세보기</b>",
+              onClick: () => navigate("/stays/dd01ddae-11b8-44ec-8ddd-841e0d81ee1d"),
             },
             {
               id: "pavilion",
               lat: 37.4981,
               lng: 127.0280,
-              label: "강남파빌리온점",
-              info: "솔데스크 강남파빌리온점 · 강남구 강남대로98길 16",
-              onClick: () => navigate("/stays?region=서울"),
+              label: "솔데스크 강남파빌리온점",
+              info: "솔데스크 강남파빌리온점 · 강남구 강남대로98길 16<br/><b>클릭하여 상세보기</b>",
+              onClick: () => navigate("/stays/86eb76c6-edb7-49b1-8c55-ac6236b66957"),
             },
             {
               id: "seongok",
               lat: 37.5131,
               lng: 127.0572,
-              label: "강남성옥빌딩점",
-              info: "솔데스크 강남성옥빌딩점 · 강남구 봉은사로 119",
-              onClick: () => navigate("/stays?region=서울"),
+              label: "솔데스크 강남성옥빌딩점",
+              info: "솔데스크 강남성옥빌딩점 · 강남구 봉은사로 119<br/><b>클릭하여 상세보기</b>",
+              onClick: () => navigate("/stays/d83e5082-a03d-4e1c-918a-37d17b0d8995"),
             },
           ]}
         />

@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 
-// Replace with actual Kakao Maps API key
-const KAKAO_KEY = import.meta.env.VITE_KAKAO_MAP_KEY;
-
-declare global {
-  interface Window {
-    kakao: any;
-  }
-}
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 export type KakaoMarker = {
   id?: string;
@@ -27,140 +27,63 @@ type Props = {
   activeId?: string;
 };
 
-let sdkPromise: Promise<void> | null = null;
-
-const loadSdk = () => {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.kakao && window.kakao.maps) return Promise.resolve();
-  if (sdkPromise) return sdkPromise;
-
-  sdkPromise = new Promise<void>((resolve, reject) => {
-    const ready = () => {
-      if (window.kakao?.maps?.load) {
-        window.kakao.maps.load(() => resolve());
-      } else {
-        reject(new Error("Kakao Maps SDK not available"));
-      }
-    };
-
-    const existing = document.querySelector(
-      'script[src*="dapi.kakao.com/v2/maps/sdk.js"]'
-    ) as HTMLScriptElement | null;
-
-    if (existing) {
-      if ((window as any).kakao?.maps) {
-        ready();
-      } else {
-        existing.addEventListener("load", ready);
-        existing.addEventListener("error", () => reject(new Error("Failed to load Kakao Maps SDK")));
-      }
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_KEY}&libraries=services&autoload=false`;
-    script.async = true;
-    script.onload = ready;
-    script.onerror = () => reject(new Error("Failed to load Kakao Maps SDK"));
-    document.head.appendChild(script);
-  });
-
-  return sdkPromise;
+const levelToZoom = (level: number): number => {
+  const map: Record<number, number> = {
+    1: 17, 2: 16, 3: 15, 4: 14, 5: 13,
+    6: 12, 7: 11, 8: 10, 9: 9, 10: 8,
+    11: 7, 12: 6, 13: 5, 14: 4,
+  };
+  return map[level] ?? 12;
 };
 
 const KakaoMap = ({ center, level = 9, markers = [], height = 400, className, activeId }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const overlaysRef = useRef<any[]>([]);
-  const infoRef = useRef<any>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const layerRef = useRef<L.Layer[]>([]);
 
-  // init map
   useEffect(() => {
-    let cancelled = false;
-    loadSdk()
-      .then(() => {
-        if (cancelled || !containerRef.current || !window.kakao?.maps) return;
-        const { kakao } = window;
-        mapRef.current = new kakao.maps.Map(containerRef.current, {
-          center: new kakao.maps.LatLng(center.lat, center.lng),
-          level,
-        });
-      })
-      .catch(() => {
-        if (containerRef.current) {
-          containerRef.current.innerHTML =
-            '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:DM Serif Display, serif;color:hsl(0 0% 50%);">KAKAO MAP API</div>';
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!containerRef.current || mapRef.current) return;
+    mapRef.current = L.map(containerRef.current, {
+      center: [center.lat, center.lng],
+      zoom: levelToZoom(level),
+    });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap contributors",
+    }).addTo(mapRef.current);
+    return () => { mapRef.current?.remove(); mapRef.current = null; };
   }, []);
 
-  // update center
   useEffect(() => {
-    if (!mapRef.current || !window.kakao?.maps) return;
-    mapRef.current.setCenter(new window.kakao.maps.LatLng(center.lat, center.lng));
+    mapRef.current?.setView([center.lat, center.lng]);
   }, [center.lat, center.lng]);
 
-  // markers
   useEffect(() => {
-    if (!mapRef.current || !window.kakao?.maps) return;
-    const { kakao } = window;
-
-    overlaysRef.current.forEach((o) => o.setMap(null));
-    overlaysRef.current = [];
-    if (infoRef.current) {
-      infoRef.current.close();
-      infoRef.current = null;
-    }
-
+    if (!mapRef.current) return;
+    layerRef.current.forEach((l) => l.remove());
+    layerRef.current = [];
     markers.forEach((m) => {
-      const pos = new kakao.maps.LatLng(m.lat, m.lng);
       const isActive = activeId && m.id === activeId;
-      const content = document.createElement("div");
-      content.style.cssText = `display:inline-block;padding:6px 10px;background:${
-        isActive ? "hsl(220 90% 56%)" : "hsl(0 0% 13%)"
-      };color:#fff;font-size:12px;font-weight:500;border-radius:4px;white-space:nowrap;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 6px rgba(0,0,0,0.2);`;
-      content.innerText = m.label ?? "";
-      content.addEventListener("click", () => {
-        if (m.info) {
-          if (infoRef.current) infoRef.current.close();
-          const info = new kakao.maps.InfoWindow({
-            content: `<div style="padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif;">${m.info}</div>`,
-            removable: true,
-          });
-          const anchor = new kakao.maps.Marker({ position: pos });
-          info.open(mapRef.current, anchor);
-          infoRef.current = info;
-        }
-        m.onClick?.();
+      const icon = L.divIcon({
+        className: "",
+        html: `<div style="padding:8px 14px;background:${isActive ? "#3b82f6" : "#111"};color:#fff;font-size:14px;font-weight:500;border-radius:4px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer">${m.label ?? ""}</div>`,
+        iconAnchor: [0, 0],
       });
-
-      const overlay = new kakao.maps.CustomOverlay({
-        position: pos,
-        content,
-        yAnchor: 1,
-      });
-      overlay.setMap(mapRef.current);
-      overlaysRef.current.push(overlay);
+      const marker = L.marker([m.lat, m.lng], { icon }).addTo(mapRef.current!);
+      if (m.info) marker.bindPopup(`<div style="font-size:12px;padding:4px 8px">${m.info}</div>`);
+      if (m.onClick) marker.on("click", m.onClick);
+      layerRef.current.push(marker);
     });
   }, [markers, activeId]);
 
   return (
-    <div
-      ref={containerRef}
-      className={className}
-      style={{
-        width: "100%",
-        height: typeof height === "number" ? `${height}px` : height,
-        border: "0.5px solid hsl(0 0% 80%)",
-        borderRadius: "8px",
-        overflow: "hidden",
-        background: "hsl(0 0% 96%)",
-      }}
-    />
+    <div ref={containerRef} className={className} style={{
+      width: "100%",
+      height: typeof height === "number" ? `${height}px` : height,
+      border: "0.5px solid hsl(0 0% 80%)",
+      borderRadius: "8px",
+      overflow: "hidden",
+      background: "hsl(0 0% 96%)",
+    }} />
   );
 };
 

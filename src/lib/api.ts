@@ -149,6 +149,18 @@ export async function getStayRooms(stayId: string): Promise<RoomItem[]> {
   return request<RoomItem[]>(`/stays/${stayId}/rooms`);
 }
 
+export interface ReviewItem {
+  id: string;
+  rating: number;
+  content: string;
+  created_at: string;
+  user_name: string;
+}
+
+export async function getStayReviews(stayId: string, limit = 10): Promise<ReviewItem[]> {
+  return request<ReviewItem[]>(`/stays/${stayId}/reviews?limit=${limit}`);
+}
+
 // ── Events API ──
 export interface EventItem {
   id: string;
@@ -205,6 +217,7 @@ export interface CouponValidateResult {
   valid: boolean;
   discount_rate: number;
   message: string;
+  coupon_id?: string;
 }
 
 export async function issueCoupon(data: {

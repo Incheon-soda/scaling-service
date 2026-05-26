@@ -52,61 +52,34 @@ async def issue_coupon(
     pool = await get_pool()
 
     async with pool.acquire() as conn:
-        # 트랜잭션 시작 — FOR UPDATE 락을 사용하려면 반드시 트랜잭션 안에서
         async with conn.transaction():
-            # ① 쿠폰 마스터 row 잠금 (핵심: FOR UPDATE)
-            # 같은 code + event_id 조합의 row를 잠근다
-            # 다른 트랜잭션은 이 row의 락이 풀릴 때까지 대기 → 직렬화
-            coupon_master = await conn.fetchrow(
+
+            # ── 풀 쿠폰 방식 (total_count > 1, event_id 무관) ──────────────
+            # SOLD-LOAD 같은 선착순 풀 쿠폰: 어느 이벤트 페이지에서도 발급 가능
+            coupon_pool = await conn.fetchrow(
                 """
                 SELECT id, code, event_id, stay_id, discount_rate,
                        total_count, remaining_count
                 FROM coupons
-                WHERE code = $1 AND event_id = $2 AND used_by IS NULL AND is_used = FALSE
+                WHERE code = $1 AND total_count > 1
                 ORDER BY id
                 LIMIT 1
                 FOR UPDATE
                 """,
-                req.coupon_code, req.event_id,
+                req.coupon_code,
             )
 
-            # 마스터 쿠폰이 없는 경우 → 쿠폰 풀 방식으로 전환
-            # 이벤트에 연결된 쿠폰 코드의 remaining_count 확인
-            if not coupon_master:
-                # 쿠폰 풀 방식: code 기준으로 대표 row를 잠금
-                coupon_pool = await conn.fetchrow(
-                    """
-                    SELECT id, code, event_id, stay_id, discount_rate,
-                           total_count, remaining_count
-                    FROM coupons
-                    WHERE code = $1 AND event_id = $2
-                    ORDER BY id
-                    LIMIT 1
-                    FOR UPDATE
-                    """,
-                    req.coupon_code, req.event_id,
-                )
-
-                if not coupon_pool:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail="유효하지 않은 쿠폰 코드입니다",
-                    )
-
-                # ② 잔여 수량 체크
+            if coupon_pool:
                 if coupon_pool["remaining_count"] <= 0:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
                         detail="쿠폰이 모두 소진되었습니다",
                     )
 
-                # ③ 이미 발급받았는지 확인
+                # 이미 발급받았는지 확인 (code 기준)
                 already = await conn.fetchrow(
-                    """
-                    SELECT id FROM coupons
-                    WHERE code = $1 AND event_id = $2 AND used_by = $3
-                    """,
-                    req.coupon_code, req.event_id, UUID(user_id),
+                    "SELECT id FROM coupons WHERE code = $1 AND used_by = $2",
+                    req.coupon_code, UUID(user_id),
                 )
                 if already:
                     raise HTTPException(
@@ -114,16 +87,13 @@ async def issue_coupon(
                         detail="이미 발급받은 쿠폰입니다",
                     )
 
-                # ④ remaining_count 차감
+                # remaining_count 차감 (★ FOR UPDATE 락 핵심 ★)
                 await conn.execute(
-                    """
-                    UPDATE coupons SET remaining_count = remaining_count - 1
-                    WHERE id = $1
-                    """,
+                    "UPDATE coupons SET remaining_count = remaining_count - 1 WHERE id = $1",
                     coupon_pool["id"],
                 )
 
-                # ⑤ 개인 쿠폰 row INSERT
+                # 개인 쿠폰 row INSERT
                 new_coupon = await conn.fetchrow(
                     """
                     INSERT INTO coupons (code, event_id, stay_id, discount_rate,
@@ -150,13 +120,28 @@ async def issue_coupon(
                     total_count=new_coupon["total_count"],
                 )
 
-            # 단일 쿠폰 할당 방식 (개별 쿠폰 row가 미리 생성되어 있는 경우)
-            # ③ 이미 발급 확인
-            already = await conn.fetchrow(
+            # ── 개별 쿠폰 방식 (total_count = 1, event_id 필요) ──────────────
+            coupon_master = await conn.fetchrow(
                 """
-                SELECT id FROM coupons
-                WHERE code = $1 AND event_id = $2 AND used_by = $3
+                SELECT id, code, event_id, stay_id, discount_rate,
+                       total_count, remaining_count
+                FROM coupons
+                WHERE code = $1 AND event_id = $2 AND used_by IS NULL AND is_used = FALSE
+                ORDER BY id
+                LIMIT 1
+                FOR UPDATE
                 """,
+                req.coupon_code, req.event_id,
+            )
+
+            if not coupon_master:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="유효하지 않은 쿠폰 코드입니다",
+                )
+
+            already = await conn.fetchrow(
+                "SELECT id FROM coupons WHERE code = $1 AND event_id = $2 AND used_by = $3",
                 req.coupon_code, req.event_id, UUID(user_id),
             )
             if already:
@@ -165,12 +150,8 @@ async def issue_coupon(
                     detail="이미 발급받은 쿠폰입니다",
                 )
 
-            # ④ 해당 쿠폰을 사용자에게 할당
             await conn.execute(
-                """
-                UPDATE coupons SET used_by = $1
-                WHERE id = $2
-                """,
+                "UPDATE coupons SET used_by = $1 WHERE id = $2",
                 UUID(user_id), coupon_master["id"],
             )
 
@@ -260,4 +241,5 @@ async def validate_coupon(
         valid=True,
         discount_rate=coupon["discount_rate"],
         message=f"{coupon['discount_rate']}% 할인 쿠폰이 적용됩니다",
+        coupon_id=coupon["id"],
     )

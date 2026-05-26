@@ -108,6 +108,7 @@ class CouponValidateResponse(BaseModel):
     valid: bool
     discount_rate: int = 0
     message: str
+    coupon_id: Optional[UUID] = None
 
 
 # ── Bookings ──

@@ -156,6 +156,35 @@ async def get_stay(stay_id: UUID):
     )
 
 
+@router.get("/{stay_id}/reviews")
+async def get_reviews(stay_id: UUID, limit: int = 10):
+    """숙소 리뷰 목록"""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT r.id, r.rating, r.content, r.created_at,
+                   u.name AS user_name
+            FROM reviews r
+            JOIN users u ON u.id = r.user_id
+            WHERE r.stay_id = $1
+            ORDER BY r.created_at DESC
+            LIMIT $2
+            """,
+            stay_id, limit,
+        )
+    return [
+        {
+            "id": str(r["id"]),
+            "rating": r["rating"],
+            "content": r["content"],
+            "created_at": str(r["created_at"])[:10],
+            "user_name": r["user_name"],
+        }
+        for r in rows
+    ]
+
+
 @router.get("/{stay_id}/rooms", response_model=list[RoomOut])
 async def get_rooms(stay_id: UUID):
     """숙소의 객실 목록"""

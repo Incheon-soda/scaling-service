@@ -6,7 +6,7 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="BASE_URL" elementType="Argument">
             <stringProp name="Argument.name">BASE_URL</stringProp>
-            <stringProp name="Argument.value">http://localhost</stringProp>
+            <stringProp name="Argument.value">10.0.2.138</stringProp>
           </elementProp>
           <elementProp name="API_PORT" elementType="Argument">
             <stringProp name="Argument.name">API_PORT</stringProp>
@@ -21,7 +21,7 @@
     </TestPlan>
     <hashTree>
 
-      <!-- setUp -->
+      <!-- setUp: event_id / stay_id / room_id 수집 -->
       <SetupThreadGroup guiclass="SetupThreadGroupGui" testclass="SetupThreadGroup" testname="setUp - ID 수집" enabled="true">
         <stringProp name="ThreadGroup.num_threads">1</stringProp>
         <stringProp name="ThreadGroup.ramp_time">1</stringProp>
@@ -31,65 +31,88 @@
         </elementProp>
       </SetupThreadGroup>
       <hashTree>
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="GET /events" enabled="true">
+
+        <!-- event_id 수집 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /events" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/events</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <JSONPathExtractor testclass="JSONPathExtractor" testname="event_id" enabled="true">
-            <stringProp name="JSONPathExtractor.referenceName">EV_ID</stringProp>
-            <stringProp name="JSONPathExtractor.jsonPathExpression">$[0].id</stringProp>
-            <stringProp name="JSONPathExtractor.defaultValue">NOT_FOUND</stringProp>
-          </JSONPathExtractor>
-          <JSR223PostProcessor testclass="JSR223PostProcessor" enabled="true">
+          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="event_id 추출" enabled="true">
+            <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+            <stringProp name="RegexExtractor.refname">EV_ID</stringProp>
+            <stringProp name="RegexExtractor.regex">"id"\s*:\s*"([^"]+)"</stringProp>
+            <stringProp name="RegexExtractor.template">$1$</stringProp>
+            <stringProp name="RegexExtractor.default">NOT_FOUND</stringProp>
+            <stringProp name="RegexExtractor.match_no">1</stringProp>
+          </RegexExtractor>
+          <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="event_id props 저장" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script">props.put("S3_EVENT_ID", vars.get("EV_ID"))</stringProp>
           </JSR223PostProcessor>
+          <hashTree/>
         </hashTree>
 
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="GET /stays" enabled="true">
+        <!-- stay_id 수집 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /stays" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/stays?limit=1</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <JSONPathExtractor testclass="JSONPathExtractor" testname="stay_id" enabled="true">
-            <stringProp name="JSONPathExtractor.referenceName">ST_ID</stringProp>
-            <stringProp name="JSONPathExtractor.jsonPathExpression">$[0].id</stringProp>
-            <stringProp name="JSONPathExtractor.defaultValue">NOT_FOUND</stringProp>
-          </JSONPathExtractor>
-          <JSR223PostProcessor testclass="JSR223PostProcessor" enabled="true">
+          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="stay_id 추출" enabled="true">
+            <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+            <stringProp name="RegexExtractor.refname">ST_ID</stringProp>
+            <stringProp name="RegexExtractor.regex">"id"\s*:\s*"([^"]+)"</stringProp>
+            <stringProp name="RegexExtractor.template">$1$</stringProp>
+            <stringProp name="RegexExtractor.default">NOT_FOUND</stringProp>
+            <stringProp name="RegexExtractor.match_no">1</stringProp>
+          </RegexExtractor>
+          <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="stay_id props 저장" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script">props.put("S3_STAY_ID", vars.get("ST_ID"))</stringProp>
           </JSR223PostProcessor>
+          <hashTree/>
         </hashTree>
 
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="GET /stays/:id/rooms" enabled="true">
+        <!-- room_id 수집 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="GET /stays/:id/rooms" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/stays/${ST_ID}/rooms</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <JSONPathExtractor testclass="JSONPathExtractor" testname="room_id" enabled="true">
-            <stringProp name="JSONPathExtractor.referenceName">RM_ID</stringProp>
-            <stringProp name="JSONPathExtractor.jsonPathExpression">$[0].id</stringProp>
-            <stringProp name="JSONPathExtractor.defaultValue">NOT_FOUND</stringProp>
-          </JSONPathExtractor>
-          <JSR223PostProcessor testclass="JSR223PostProcessor" enabled="true">
+          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="room_id 추출" enabled="true">
+            <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+            <stringProp name="RegexExtractor.refname">RM_ID</stringProp>
+            <stringProp name="RegexExtractor.regex">"id"\s*:\s*"([^"]+)"</stringProp>
+            <stringProp name="RegexExtractor.template">$1$</stringProp>
+            <stringProp name="RegexExtractor.default">NOT_FOUND</stringProp>
+            <stringProp name="RegexExtractor.match_no">1</stringProp>
+          </RegexExtractor>
+          <hashTree/>
+          <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="room_id props 저장" enabled="true">
             <stringProp name="scriptLanguage">groovy</stringProp>
             <stringProp name="script">props.put("S3_ROOM_ID", vars.get("RM_ID"))</stringProp>
           </JSR223PostProcessor>
+          <hashTree/>
         </hashTree>
+
       </hashTree>
 
-      <!-- 메인: 800명 / 30초 ramp-up / 1회 -->
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="800명 복합 플로우" enabled="true">
-        <stringProp name="ThreadGroup.num_threads">800</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">30</stringProp>
+      <!-- 메인: 500명 / 20초 ramp-up -->
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="500명 복합 플로우" enabled="true">
+        <stringProp name="ThreadGroup.num_threads">500</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">20</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController">
@@ -106,10 +129,11 @@
           <boolProp name="ignoreFirstLine">true</boolProp>
           <stringProp name="shareMode">shareMode.all</stringProp>
           <boolProp name="recycle">true</boolProp>
+          <boolProp name="stopThread">false</boolProp>
         </CSVDataSet>
         <hashTree/>
 
-        <HeaderManager testclass="HeaderManager" testname="Content-Type" enabled="true">
+        <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Content-Type JSON" enabled="true">
           <collectionProp name="HeaderManager.headers">
             <elementProp name="" elementType="Header">
               <stringProp name="Header.name">Content-Type</stringProp>
@@ -120,7 +144,7 @@
         <hashTree/>
 
         <!-- ① 로그인 -->
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="① POST /auth/login" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="① POST /auth/login" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/auth/login</stringProp>
@@ -134,40 +158,47 @@
               </elementProp>
             </collectionProp>
           </elementProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <JSONPathExtractor testclass="JSONPathExtractor" testname="토큰" enabled="true">
-            <stringProp name="JSONPathExtractor.referenceName">TOKEN</stringProp>
-            <stringProp name="JSONPathExtractor.jsonPathExpression">$.access_token</stringProp>
-            <stringProp name="JSONPathExtractor.defaultValue">NO_TOKEN</stringProp>
-          </JSONPathExtractor>
+          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="TOKEN 추출" enabled="true">
+            <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+            <stringProp name="RegexExtractor.refname">TOKEN</stringProp>
+            <stringProp name="RegexExtractor.regex">"access_token"\s*:\s*"([^"]+)"</stringProp>
+            <stringProp name="RegexExtractor.template">$1$</stringProp>
+            <stringProp name="RegexExtractor.default">NO_TOKEN</stringProp>
+            <stringProp name="RegexExtractor.match_no">1</stringProp>
+          </RegexExtractor>
+          <hashTree/>
         </hashTree>
 
-        <!-- ② 이벤트 목록 -->
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="② GET /events" enabled="true">
+        <!-- ② 이벤트 목록 조회 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="② GET /events" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/events</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree/>
 
-        <!-- ③ 이벤트 상세 -->
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="③ GET /events/:id" enabled="true">
+        <!-- ③ 이벤트 상세 조회 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="③ GET /events/:id" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/events/${__P(S3_EVENT_ID)}</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <ConstantTimer testclass="ConstantTimer" testname="Think 2s" enabled="true">
-            <stringProp name="ConstantTimer.delay">2000</stringProp>
+          <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think 1s" enabled="true">
+            <stringProp name="ConstantTimer.delay">1000</stringProp>
           </ConstantTimer>
           <hashTree/>
         </hashTree>
 
-        <!-- ④ 쿠폰 발급 ★ -->
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="④ POST /coupons/issue ★DB락1차★" enabled="true">
+        <!-- ④ 쿠폰 발급 ★DB락1차★ -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="④ POST /coupons/issue ★DB락1차★" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/coupons/issue</stringProp>
@@ -181,9 +212,10 @@
               </elementProp>
             </collectionProp>
           </elementProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager testclass="HeaderManager" testname="Auth" enabled="true">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Auth Header" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Authorization</stringProp>
@@ -192,39 +224,60 @@
             </collectionProp>
           </HeaderManager>
           <hashTree/>
-          <JSONPathExtractor testclass="JSONPathExtractor" testname="coupon_id" enabled="true">
-            <stringProp name="JSONPathExtractor.referenceName">COUPON_ID</stringProp>
-            <stringProp name="JSONPathExtractor.jsonPathExpression">$.id</stringProp>
-            <stringProp name="JSONPathExtractor.defaultValue">NO_COUPON</stringProp>
-          </JSONPathExtractor>
+          <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="coupon_id 추출" enabled="true">
+            <stringProp name="RegexExtractor.useHeaders">false</stringProp>
+            <stringProp name="RegexExtractor.refname">COUPON_ID</stringProp>
+            <stringProp name="RegexExtractor.regex">"id"\s*:\s*"([^"]+)"</stringProp>
+            <stringProp name="RegexExtractor.template">$1$</stringProp>
+            <stringProp name="RegexExtractor.default">NO_COUPON</stringProp>
+            <stringProp name="RegexExtractor.match_no">1</stringProp>
+          </RegexExtractor>
           <hashTree/>
         </hashTree>
 
-        <!-- ⑤ 숙소 상세 -->
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="⑤ GET /stays/:id" enabled="true">
+        <!-- ⑤ 숙소 상세 조회 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="⑤ GET /stays/:id" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/stays/${__P(S3_STAY_ID)}</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <ConstantTimer testclass="ConstantTimer" testname="Think 2s" enabled="true">
-            <stringProp name="ConstantTimer.delay">2000</stringProp>
+          <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think 1s" enabled="true">
+            <stringProp name="ConstantTimer.delay">1000</stringProp>
           </ConstantTimer>
           <hashTree/>
         </hashTree>
 
-        <!-- ⑥ 객실 선택 -->
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="⑥ GET /stays/:id/rooms" enabled="true">
+        <!-- ⑥ 객실 목록 조회 -->
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="⑥ GET /stays/:id/rooms" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/stays/${__P(S3_STAY_ID)}/rooms</stringProp>
           <stringProp name="HTTPSampler.method">GET</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree/>
 
-        <!-- ⑦ 예약 생성 ★ -->
-        <HTTPSamplerProxy testclass="HTTPSamplerProxy" testname="⑦ POST /bookings ★DB락2차★" enabled="true">
+        <!-- ⑦ 예약 생성 ★DB락2차★ - coupon_id 있으면 포함, 없으면 제외 -->
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="예약 body 구성" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="script">
+def couponId = vars.get("COUPON_ID")
+def stayId = props.get("S3_STAY_ID")
+def roomId = props.get("S3_ROOM_ID")
+
+if (couponId != null &amp;&amp; couponId != "NO_COUPON" &amp;&amp; couponId.length() == 36) {
+    vars.put("BOOKING_BODY", '{"stay_id":"' + stayId + '","room_id":"' + roomId + '","check_in":"2026-08-01","check_out":"2026-08-03","guests":2,"coupon_id":"' + couponId + '"}')
+} else {
+    vars.put("BOOKING_BODY", '{"stay_id":"' + stayId + '","room_id":"' + roomId + '","check_in":"2026-08-01","check_out":"2026-08-03","guests":2}')
+}
+          </stringProp>
+        </JSR223PreProcessor>
+        <hashTree/>
+
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="⑦ POST /bookings ★DB락2차★" enabled="true">
           <stringProp name="HTTPSampler.domain">${BASE_URL}</stringProp>
           <stringProp name="HTTPSampler.port">${API_PORT}</stringProp>
           <stringProp name="HTTPSampler.path">/bookings</stringProp>
@@ -233,14 +286,15 @@
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
-                <stringProp name="Argument.value">{"stay_id":"${__P(S3_STAY_ID)}","room_id":"${__P(S3_ROOM_ID)}","check_in":"2026-08-01","check_out":"2026-08-03","guests":2,"coupon_id":"${COUPON_ID}","event_id":"${__P(S3_EVENT_ID)}"}</stringProp>
+                <stringProp name="Argument.value">${BOOKING_BODY}</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
           </elementProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager testclass="HeaderManager" testname="Auth" enabled="true">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Auth Header" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Authorization</stringProp>
@@ -251,7 +305,7 @@
           <hashTree/>
         </hashTree>
 
-        <ResultCollector testclass="ResultCollector" testname="Summary Report" enabled="true">
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>

@@ -37,9 +37,7 @@ const Booking = () => {
 
   const [couponInput, setCouponInput] = useState(couponParam);
   const [couponId, setCouponId] = useState<string | undefined>();
-  const [couponState, setCouponState] = useState<"idle" | "loading" | "success" | "error">(
-    couponParam ? "idle" : "idle"
-  );
+  const [couponState, setCouponState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [appliedDiscount, setAppliedDiscount] = useState(0);
 
   useEffect(() => {
@@ -57,6 +55,18 @@ const Booking = () => {
         setStay(s);
         setRooms(r);
         if (r.length > 0) setSelectedRoom(r[0]);
+        // URL에 쿠폰 코드가 있으면 자동 검증 및 적용
+        if (couponParam) {
+          validateCoupon({ coupon_code: couponParam, stay_id: stayId || undefined })
+            .then((res) => {
+              if (res.valid) {
+                setAppliedDiscount(res.discount_rate);
+                setCouponId(res.coupon_id);
+                setCouponState("success");
+              }
+            })
+            .catch(() => {});
+        }
       })
       .catch(() => toast.error("숙소 정보를 불러오지 못했습니다"))
       .finally(() => setLoading(false));
@@ -81,7 +91,7 @@ const Booking = () => {
       const res = await validateCoupon({ coupon_code: code, stay_id: stayId || undefined });
       if (res.valid) {
         setAppliedDiscount(res.discount_rate);
-        setCouponId(undefined);
+        setCouponId(res.coupon_id);
         setCouponState("success");
         toast.success(res.message);
       } else {
